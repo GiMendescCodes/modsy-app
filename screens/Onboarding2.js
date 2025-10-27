@@ -1,8 +1,10 @@
 // screens/Onboarding2.js
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-export default function Onboarding2({ navigation }) {
+export default function Onboarding2({}) {
+  const navigation = useNavigation();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Looks inteligentes</Text>

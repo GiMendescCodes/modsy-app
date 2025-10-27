@@ -1,8 +1,10 @@
 // screens/Onboarding3.js
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-export default function Onboarding3({ navigation }) {
+export default function Onboarding3({}) {
+  const navigation = useNavigation();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Vamos começar?</Text>

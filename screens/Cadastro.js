@@ -4,8 +4,10 @@ import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 
-export default function Cadastro({ navigation }) {
+export default function Cadastro({ }) {
+  const navigation = useNavigation();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

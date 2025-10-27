@@ -2,8 +2,10 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import { auth } from '../firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 
-export default function Perfil({ navigation }) {
+export default function Perfil({ }) {
+  const navigation = useNavigation();
   const handleEditarEstilos = () => {
     navigation.navigate('SelecaoEstilos');
   };

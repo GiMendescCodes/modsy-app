@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { auth } from '../firebaseConfig';
 import { salvarEstilos } from '../services/authService';
+import { useNavigation } from '@react-navigation/native';
 
-export default function SelecaoEstilos({ navigation }) {
+export default function SelecaoEstilos({}) {
+  const navigation = useNavigation();
   const [selecionados, setSelecionados] = useState([]);
   const estilos = [
     'gótico', 'casual', 'elegante', 'esportivo',
