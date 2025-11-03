@@ -37,9 +37,9 @@ export async function login(email, password) {
  */
 export async function signup(email, password, nome) {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  const user = userCredential.user;
+  const { uid } = userCredential.user;
 
-  await setDoc(doc(db, "users", user.uid), {
+  await setDoc(doc(db, "users", uid), {
     nome,
     email,
     estilos: [],
@@ -68,12 +68,16 @@ export async function salvarEstilos(uid, estilos) {
  */
 export async function salvarPeca(uid, peca) {
   if (!uid) throw new Error("Usuário não autenticado");
-  if (!peca || !peca.categoria) throw new Error("Dados da peça inválidos");
+  if (!peca?.categoria) throw new Error("Categoria da peça é obrigatória");
 
-  const pecasRef = collection(db, "pecas");
-  await addDoc(pecasRef, {
-    uid,
-    ...peca,
+  await addDoc(collection(db, "pecas"), {
+    uid, // 👈 campo usado para vincular ao usuário
+    categoria: peca.categoria,
+    tipo: peca.tipo,
+    cor: peca.cor,
+    estilo: peca.estilo,
+    tecido: peca.tecido,
+    imageUrl: peca.imageUrl || peca.uri,
     createdAt: new Date(),
   });
 }
@@ -95,13 +99,12 @@ export async function carregarPecas(uid) {
 
   snapshot.forEach((docSnapshot) => {
     const data = docSnapshot.data();
-    const categoria = data.categoria;
+    const { categoria } = data;
 
-    // Garante que a categoria seja válida
     if (["superior", "inferior", "unica", "sapato"].includes(categoria)) {
       pecas[categoria].push({
         id: docSnapshot.id,
-        uri: data.imageUrl || data.uri, // compatibilidade com campos antigos
+        uri: data.imageUrl || data.uri || null,
         cor: data.cor || "",
         tipo: data.tipo || "",
         estilo: data.estilo || "",
@@ -119,6 +122,5 @@ export async function carregarPecas(uid) {
  */
 export async function excluirPeca(pecaId) {
   if (!pecaId) throw new Error("ID da peça é obrigatório");
-  const pecaRef = doc(db, "pecas", pecaId);
-  await deleteDoc(pecaRef);
+  await deleteDoc(doc(db, "pecas", pecaId));
 }

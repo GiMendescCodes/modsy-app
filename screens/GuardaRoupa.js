@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system/legacy";
+import { File, Paths } from "expo-file-system"; // ✅ Nova API
 import { auth } from "../firebaseConfig";
 import {
   salvarPeca,
@@ -25,7 +25,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 
 // 🔑 Substitua pela sua chave da API do remove.bg
-const REMOVE_BG_API_KEY = "qso1cW5r34EmSwKZeV5rzJtr"; // ⚠️ Nunca exponha em produção!
+const REMOVE_BG_API_KEY = "UE1eG4Beq4ortNycER9oH8Bj"; // ⚠️ Nunca exponha em produção!
 
 export default function GuardaRoupa({}) {
   const navigation = useNavigation();
@@ -60,8 +60,7 @@ export default function GuardaRoupa({}) {
   useEffect(() => {
     (async () => {
       if (Platform.OS !== "web") {
-        const { status } =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== "granted" || cameraStatus.status !== "granted") {
           Alert.alert(
@@ -83,70 +82,62 @@ export default function GuardaRoupa({}) {
     setModalVisible(true);
   };
 
-const removeBackground = async (localUri) => {
-  if (!REMOVE_BG_API_KEY) {
-    Alert.alert("Erro", "Chave da API do Remove.bg não configurada.");
-    return localUri;
-  }
-
-  setRemovingBg(true);
-  try {
-    const base64 = await FileSystem.readAsStringAsync(localUri, {
-      encoding: "base64",
-    });
-
-    const response = await fetch("https://api.remove.bg/v1.0/removebg", {
-      method: "POST",
-      headers: {
-        "X-Api-Key": REMOVE_BG_API_KEY,
-        "Content-Type": "application/json",
-        "Accept": "application/json", // 👈 ESSENCIAL
-      },
-      body: JSON.stringify({
-        image_file_b64: base64,
-        size: "auto",
-      }),
-    });
-
-    // Verifica se a resposta é JSON antes de parsear
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      const text = await response.text();
-      console.error("Resposta não é JSON:", text);
-      Alert.alert("Erro", "A API não respondeu com JSON. Verifique sua chave.");
+  // ✅ Função atualizada com nova API do expo-file-system
+  const removeBackground = async (localUri) => {
+    if (!REMOVE_BG_API_KEY) {
+      Alert.alert("Erro", "Chave da API do Remove.bg não configurada.");
       return localUri;
     }
 
-    if (!response.ok) {
-      const errorJson = await response.json().catch(() => ({}));
-      const errorMsg = errorJson.errors?.[0]?.title || "Erro desconhecido";
-      console.error("Erro da API remove.bg:", errorMsg);
-      Alert.alert("Erro", `Falha ao remover fundo: ${errorMsg}`);
+    setRemovingBg(true);
+    try {
+      // Lê arquivo como base64 usando nova API
+      const file = new File(localUri);
+      const base64 = await file.base64();
+
+      // Chama remove.bg
+      const response = await fetch("https://api.remove.bg/v1.0/removebg", {
+        method: "POST",
+        headers: {
+          "X-Api-Key": REMOVE_BG_API_KEY,
+          "Content-Type": "application/json",
+          "Accept": "application/json", // 👈 essencial para JSON
+        },
+        body: JSON.stringify({
+          image_file_b64: base64,
+          size: "auto",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro bruto da API:", errorText);
+        Alert.alert("Erro", "Falha ao processar imagem. Verifique sua chave.");
+        return localUri;
+      }
+
+      const resultJson = await response.json();
+      const base64SemFundo = resultJson.data?.result_b64;
+
+      if (!base64SemFundo) {
+        Alert.alert("Erro", "Resposta inválida da API.");
+        return localUri;
+      }
+
+      // Salva novo arquivo na cache
+      const fileName = `sem_fundo_${Date.now()}.png`;
+      const outputFile = new File(Paths.cache, fileName);
+      await outputFile.write(base64SemFundo, { encoding: "base64" });
+
+      return outputFile.uri;
+    } catch (error) {
+      console.error("Erro ao remover fundo:", error);
+      Alert.alert("Erro", "Não foi possível processar a imagem.");
       return localUri;
+    } finally {
+      setRemovingBg(false);
     }
-
-    const resultJson = await response.json();
-    const base64SemFundo = resultJson.data?.result_b64;
-
-    if (!base64SemFundo) {
-      Alert.alert("Erro", "Resposta inválida da API: base64 ausente.");
-      return localUri;
-    }
-
-    const fileUri = `${FileSystem.cacheDirectory}sem_fundo_${Date.now()}.png`;
-    await FileSystem.writeAsStringAsync(fileUri, base64SemFundo, {
-      encoding: "base64",
-    });
-
-    return fileUri;
-  } catch (error) {
-    console.error("Erro ao remover fundo:", error);
-    Alert.alert("Erro", "Não foi possível processar a imagem.");
-    return localUri;
-  } finally {
-    setRemovingBg(false);
-  }
-};
+  };
 
   const selecionarImagem = async (origem) => {
     let result;
@@ -154,14 +145,14 @@ const removeBackground = async (localUri) => {
     try {
       if (origem === "camera") {
         result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ CORRIGIDO AQUI
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [1, 1.5],
           quality: 0.8,
         });
       } else {
         result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ CORRIGIDO AQUI
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [1, 1.5],
           quality: 0.8,
@@ -169,21 +160,15 @@ const removeBackground = async (localUri) => {
       }
     } catch (error) {
       console.error("Erro ao abrir seletor:", error);
-      Alert.alert(
-        "Erro",
-        "Falha ao acessar câmera/galeria. Verifique as permissões."
-      );
+      Alert.alert("Erro", "Falha ao acessar câmera/galeria.");
       return;
     }
 
-    // Verificação segura do resultado (Expo SDK 50+)
     if (result.canceled || !result.assets || result.assets.length === 0) {
-      console.log("Seleção cancelada ou vazia");
       return;
     }
 
     const uri = result.assets[0].uri;
-    console.log("Imagem selecionada:", uri);
 
     Alert.alert(
       "Processar imagem?",
@@ -248,7 +233,7 @@ const removeBackground = async (localUri) => {
       Alert.alert("Sucesso", "Peça adicionada ao seu guarda-roupa!");
     } catch (error) {
       console.error("Erro ao salvar peça:", error);
-      Alert.alert("Erro", "Não foi possível salvar a peça. Tente novamente.");
+      Alert.alert("Erro", "Não foi possível salvar a peça.");
     } finally {
       setLoading(false);
     }
@@ -257,7 +242,7 @@ const removeBackground = async (localUri) => {
   const handleExcluirPeca = (pecaId, categoria) => {
     Alert.alert(
       "Excluir peça?",
-      "Tem certeza que deseja remover esta peça do seu guarda-roupa?",
+      "Tem certeza que deseja remover esta peça?",
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -268,19 +253,22 @@ const removeBackground = async (localUri) => {
               await excluirPeca(pecaId);
               setPecas((prev) => ({
                 ...prev,
-                [categoria]: prev[categoria].filter(
-                  (peca) => peca.id !== pecaId
-                ),
+                [categoria]: prev[categoria].filter((peca) => peca.id !== pecaId),
               }));
               Alert.alert("Sucesso", "Peça removida!");
             } catch (error) {
-              console.error("Erro ao excluir peça:", error);
-              Alert.alert("Erro", "Não foi possível excluir a peça.");
+              console.error("Erro ao excluir:", error);
+              Alert.alert("Erro", "Não foi possível excluir.");
             }
           },
         },
       ]
     );
+  };
+
+  const handleSugerirLook = () => {
+    Alert.alert("IA", "Funcionalidade em desenvolvimento!");
+    // Aqui você integrará com Firebase Functions + Vertex AI depois
   };
 
   return (
@@ -290,17 +278,14 @@ const removeBackground = async (localUri) => {
 
       <Button
         title="✨ Sugerir Look com IA"
-        onPress={() => Alert.alert("IA", "Em desenvolvimento!")}
+        onPress={handleSugerirLook}
       />
       <Button
         title="+ Adicionar Peça"
         onPress={handleAdicionarPeca}
         color="#666"
       />
-      <Button
-        title="Meu Perfil"
-        onPress={() => navigation.navigate("Perfil")}
-      />
+      <Button title="Meu Perfil" onPress={() => navigation.navigate("Perfil")} />
 
       <View style={styles.roupasSection}>
         <Text style={styles.sectionTitle}>Superiores</Text>
@@ -432,19 +417,19 @@ const removeBackground = async (localUri) => {
           />
           <TextInput
             style={styles.input}
-            placeholder="Cor (ex: azul, preto)"
+            placeholder="Cor"
             value={cor}
             onChangeText={setCor}
           />
           <TextInput
             style={styles.input}
-            placeholder="Estilo (ex: casual, elegante)"
+            placeholder="Estilo"
             value={estilo}
             onChangeText={setEstilo}
           />
           <TextInput
             style={styles.input}
-            placeholder="Tecido (ex: algodão, jeans)"
+            placeholder="Tecido"
             value={tecido}
             onChangeText={setTecido}
           />

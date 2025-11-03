@@ -1,7 +1,13 @@
 // firebaseConfig.js
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import {
+  initializeAuth,
+  getReactNativePersistence,
+  getAuth,
+} from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCs_bMXV0gwTT7y8QJgv-lZK127JWfPRcE",
@@ -9,9 +15,17 @@ const firebaseConfig = {
   projectId: "modsy-ia-app",
   storageBucket: "modsy-ia-app.firebasestorage.app",
   messagingSenderId: "449116139523",
-  appId: "1:449116139523:web:15379f94799e0468cd1e36"
+  appId: "1:449116139523:web:15379f94799e0468cd1e36",
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// ✅ Auth com persistência (não perde login ao reiniciar o app)
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+
+const db = getFirestore(app);
+const functions = getFunctions(app);
+
+export { auth, db, functions };
