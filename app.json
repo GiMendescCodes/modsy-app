@@ -26,12 +26,20 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE"
+        "CAMERA"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Precisamos acessar sua galeria para selecionar fotos de roupas.",
+          "cameraPermission": "Precisamos acessar sua câmera para tirar fotos das roupas."
+        }
+      ]
+    ]
   }
 }
