@@ -11,6 +11,7 @@ import SelecaoEstilos from './screens/SelecaoEstilos';
 import GuardaRoupa from './screens/GuardaRoupa';
 import Perfil from './screens/Perfil';
 
+
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -23,7 +24,7 @@ export default function App() {
         <Stack.Screen name="Login" component={Login} options={{ headerShown: true }} />
         <Stack.Screen name="Cadastro" component={Cadastro} options={{ headerShown: true }} />
         <Stack.Screen name="SelecaoEstilos" component={SelecaoEstilos} options={{ headerShown: true }} />
-        <Stack.Screen name="GuardaRoupa" component={GuardaRoupa} options={{ headerShown: true }} />
+        <Stack.Screen name="GuardaRoupa" component={GuardaRoupa} options={{ headerShown: false }} />
         <Stack.Screen name="Perfil" component={Perfil} options={{ headerShown: true }} />
       </Stack.Navigator>
     </NavigationContainer>

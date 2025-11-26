@@ -3,7 +3,6 @@ import { initializeApp } from "firebase/app";
 import {
   initializeAuth,
   getReactNativePersistence,
-  getAuth,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
@@ -20,7 +19,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// ✅ Auth com persistência (não perde login ao reiniciar o app)
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
@@ -28,4 +26,5 @@ const auth = initializeAuth(app, {
 const db = getFirestore(app);
 const functions = getFunctions(app);
 
-export { auth, db, functions };
+// Exporte TUDO, inclusive o app, para evitar problemas em outros arquivos
+export { app, auth, db, functions };
